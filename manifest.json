@@ -1,0 +1,21 @@
+{
+    "short_name": "FUUMOTOR",
+    "name": "FUUMOTOR - Servicio de Moto",
+    "icons": [
+        {
+            "src": "/icono1.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icono2.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#007bff",
+    "description": "Una aplicación para solicitar servicios de moto."
+}

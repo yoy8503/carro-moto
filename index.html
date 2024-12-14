@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUUMOTOR</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        /* Estilos básicos para la página */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #f0f0f0;
+        }
+
+        /* Marco flotante alrededor de toda la página */
+        .floating-border {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid black; 
+            pointer-events: none;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('fondo.gif');
+            background-size: cover;
+            background-position: center;
+            transition: background-position 0.5s ease-out;
+        }
+
+        .inputs-container {
+            width: 85vw;
+            position: absolute;
+            bottom: 80px; 
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 15px; 
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            width:85vw;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            width: 85vw;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .button-container button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: rgba(0, 123, 255, 0.7);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button-container button:hover {
+            background-color: rgba(0, 123, 255, 1);
+        }
+
+        .motorcycle-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: #000;
+        }
+
+        .motorcycle-icon {
+            font-size: 50px;
+            animation: spin 4s linear infinite;
+        }
+
+        .searching-text {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .popup-form {
+            position: fixed;
+            top: 37%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 50px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1000;
+            width: 200px;
+        }
+
+        .popup-form input {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 2px solid #333;
+        }
+
+        .popup-form button {
+            width: 100%;
+            padding: 15px;
+            background-color: rgba(0, 123, 255, 0.7);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-border"></div>
+
+    <div class="map-container">
+        <div class="inputs-container">
+            <div class="input-group">
+                <label for="destination">¿Dónde vas?</label>
+                <input type="text" id="destination" placeholder="Ejemplo: Nombre barrio">
+            </div>
+            <div class="input-group">
+                <label for="current-location">¿Dónde estás?</label>
+                <input type="text" id="current-location" placeholder="Ejemplo: Nombre barrio">
+            </div>
+            <div class="button-container">
+                <button id="requestButton">Solicitar servicio</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="motorcycle-container" id="motorcycleContainer">
+        <div class="motorcycle-icon">🏍️</div>
+        <div class="searching-text">Buscando...</div>
+    </div>
+
+    <div class="popup-form" id="popupForm">
+        <input type="text" id="userName" placeholder="Nombre">
+        <input type="tel" id="userPhone" placeholder="Número de teléfono">
+        <input type="number" id="userOffer" placeholder="Hacer oferta.">
+        <button id="submitFormButton">Confirmar Solicitud</button>
+    </div>
+
+    <script>
+        let currentCoordinates = null;
+
+        function getCoordinates() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    currentCoordinates = position.coords;
+                }, function() {
+                    alert('No se pudo obtener tu ubicación.');
+                });
+            } else {
+                alert('Geolocalización no es compatible con este navegador.');
+            }
+        }
+
+        function showForm() {
+            const popupForm = document.getElementById('popupForm');
+            popupForm.style.display = 'block';
+        }
+
+        function sendWhatsAppMessage() {
+            const name = document.getElementById('userName').value;
+            const phone = document.getElementById('userPhone').value;
+            const offer = document.getElementById('userOffer').value;
+
+            if (!name || !phone || !offer || !currentCoordinates) {
+                alert('Por favor ingresa todos los datos y activa tu ubicación.');
+                return;
+            }
+
+            if (offer < 4000) {
+                alert('Oferta mínima 4000.');
+                return;
+            }
+
+            const lat = currentCoordinates.latitude;
+            const lon = currentCoordinates.longitude;
+            const googleMapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+            const message = `USUARIO: ${name}\nTeléfono: ${phone}\nOferta: ${offer}\nUbicación: ${googleMapsLink}`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/+35699243634?text=${encodedMessage}`;
+
+            window.open(whatsappUrl, '_blank');
+
+            document.getElementById('userName').value = '';
+            document.getElementById('userPhone').value = '';
+            document.getElementById('userOffer').value = '';
+            document.getElementById('popupForm').style.display = 'none';
+        }
+
+        function showMotorcycle() {
+            const motorcycleContainer = document.getElementById('motorcycleContainer');
+            motorcycleContainer.style.display = 'flex';
+
+            setTimeout(() => {
+                motorcycleContainer.style.display = 'none';
+                showForm();
+            }, 4000);
+        }
+
+        document.getElementById('destination').addEventListener('input', handleInput);
+        document.getElementById('current-location').addEventListener('input', handleInput);
+
+        document.getElementById('requestButton').addEventListener('click', () => {
+            getCoordinates();
+            showMotorcycle();
+        });
+
+        function handleInput() {
+            const destination = document.getElementById('destination').value;
+            const currentLocation = document.getElementById('current-location').value;
+
+            if (destination || currentLocation) {
+                document.querySelector('.map-container').style.backgroundPosition = `${Math.random() * 100}% ${Math.random() * 100}%`;
+            }
+        }
+
+        document.getElementById('submitFormButton').addEventListener('click', sendWhatsAppMessage);
+
+        // PWA functionality
+        if ('Notification' in window && navigator.serviceWorker) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    console.log('Permiso de notificación concedido');
+                    if (Notification.permission === "granted") {
+                        // Crear una notificación de bienvenida cuando se carga la página
+                        new Notification('¡Bienvenido a FUUMOTOR!', {
+                            body: '¡Descarga nuestra aplicación para tener acceso más rápido a nuestros servicios!',
+                            icon: '/icono1.png'
+                        });
+                    }
+                }
+            });
+        }
+
+        // PWA: Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registrado con éxito:', registration);
+                })
+                .catch(error => {
+                    console.log('Error al registrar el Service Worker:', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
